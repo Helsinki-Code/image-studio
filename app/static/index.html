@@ -98,24 +98,14 @@ document.getElementById('form').addEventListener('submit', async (event) => {
   try {
     const form = new FormData(event.target);
     if (!form.get('synthetic_people_confirmed')) form.set('synthetic_people_confirmed', 'false');
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 75000);
-    let res;
-    try {
-      res = await fetch('/api/image', { method: 'POST', body: form, signal: controller.signal });
-    } finally {
-      clearTimeout(timeout);
-    }
+    const res = await fetch('/api/image', { method: 'POST', body: form });
     const contentType = res.headers.get('content-type') || '';
     const data = contentType.includes('application/json') ? await res.json() : { detail: await res.text() };
     if (!res.ok) throw new Error(data.detail || `Request failed with HTTP ${res.status}`);
     const imageSrc = data.image_data_url || data.image_url;
     result.innerHTML = `<div><p class="badge">Provider: ${data.provider}</p><br><br><img src="${imageSrc}" alt="Generated result"><p><a style="color:#c4b5fd" href="${imageSrc}" target="_blank">Open image</a></p></div>`;
   } catch (err) {
-    const message = err.name === 'AbortError'
-      ? 'The request timed out in the browser after 75 seconds. On Vercel, check the function logs and make sure maxDuration is supported by your plan.'
-      : err.message;
-    result.innerHTML = `<div><h2>Failed</h2><p>${message}</p></div>`;
+    result.innerHTML = `<div><h2>Failed</h2><p>${err.message}</p><p style="color:#94a3b8;font-size:13px">If this happens on Vercel, open the deployment Function Logs for the real server-side error.</p></div>`;
   } finally {
     btn.disabled = false;
     btn.textContent = 'Create image';
